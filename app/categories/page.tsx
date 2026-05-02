@@ -109,17 +109,22 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[calc(100vh-81px)] items-center justify-center">
         <p>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-[calc(100vh-81px)] bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Organize transactions with categories you can manage quickly.
+            </p>
+          </div>
           <button
             onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

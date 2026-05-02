@@ -27,12 +27,13 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  const protectedPaths = ['/dashboard', '/transactions', '/categories'];
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect dashboard routes
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
+  // Protect authenticated routes
+  if (protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path)) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { DashboardChart } from '@/components/dashboard/DashboardChart';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import type { ChartDataPoint, DashboardStats as DashboardSummary } from '@/types/api.types';
-import Link from 'next/link';
 
 interface DashboardResponse {
   data: ChartDataPoint[];
@@ -55,31 +54,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[calc(100vh-81px)] items-center justify-center">
         <p>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-[calc(100vh-81px)] bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <div className="flex gap-3">
-            <Link
-              href="/transactions"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Transactions
-            </Link>
-            <Link
-              href="/categories"
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Categories
-            </Link>
-          </div>
+          <p className="mt-2 text-sm text-gray-600">
+            Overview of your income, expenses, and balance.
+          </p>
         </div>
 
         <DashboardStats
