@@ -26,7 +26,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     const validation = loginSchema.safeParse({ email, password });
     if (!validation.success) {
       const fieldErrors: Record<string, string> = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0] as string] = err.message;
         }
