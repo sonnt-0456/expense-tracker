@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { createClient } from '@/lib/supabase/server';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,11 +19,24 @@ export const metadata: Metadata = {
   description: "Track spending, income, and trends in one place.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const initialUser = user
+    ? {
+        id: user.id,
+        email: user.email ?? '',
+        created_at: user.created_at,
+      }
+    : null;
+
   return (
     <html
       lang="en"
@@ -30,7 +44,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-slate-50 text-slate-900">
         <div className="flex min-h-full flex-col">
-          <SiteHeader />
+          <SiteHeader initialUser={initialUser} />
           <main className="flex-1">{children}</main>
         </div>
       </body>

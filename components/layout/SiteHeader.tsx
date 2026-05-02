@@ -32,12 +32,16 @@ function getLinkClasses(active: boolean) {
     : 'rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-white/70 hover:text-slate-900';
 }
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  initialUser: User | null;
+}
+
+export function SiteHeader({ initialUser }: SiteHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [supabase] = useState(createClient);
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [authLoading, setAuthLoading] = useState(initialUser === null);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   useEffect(() => {
