@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jsonError } from '@/lib/http/error-response';
 import { createClient } from '@/lib/supabase/server';
 import { TransactionService } from '@/lib/services/transaction.service';
 
@@ -10,34 +11,14 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const { searchParams } = new URL(request.url);
     const period = (searchParams.get('period') as 'daily' | 'weekly' | 'monthly') || 'monthly';
 
     if (!['daily', 'weekly', 'monthly'].includes(period)) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_PERIOD',
-            message: 'Period must be daily, weekly, or monthly',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(400, 'INVALID_PERIOD', 'Period must be daily, weekly, or monthly');
     }
 
     const transactionService = new TransactionService(supabase);
@@ -52,17 +33,7 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+  } catch {
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }

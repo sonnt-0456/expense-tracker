@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { jsonError } from '@/lib/http/error-response';
 import { createClient } from '@/lib/supabase/server';
 import { TransactionService } from '@/lib/services/transaction.service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const {
@@ -10,17 +11,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const transactionService = new TransactionService(supabase);
@@ -33,17 +24,7 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename="transactions-${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+  } catch {
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }

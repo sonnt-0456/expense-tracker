@@ -1,13 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardChart } from '@/components/dashboard/DashboardChart';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
+import type { ChartDataPoint, DashboardStats as DashboardSummary } from '@/types/api.types';
 import Link from 'next/link';
 
+interface DashboardResponse {
+  data: ChartDataPoint[];
+  summary: DashboardSummary;
+}
+
 export default function DashboardPage() {
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [stats, setStats] = useState<DashboardSummary>({
     totalIncome: 0,
     totalExpense: 0,
     balance: 0,
@@ -17,23 +23,35 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-  }, [period]);
+    let cancelled = false;
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch(`/api/transactions/stats?period=${period}`);
-      if (response.ok) {
-        const data = await response.json();
-        setChartData(data.data);
-        setStats(data.summary);
+    const loadStats = async () => {
+      try {
+        const response = await fetch(`/api/transactions/stats?period=${period}`);
+        if (!response.ok) {
+          throw new Error('Failed to load stats');
+        }
+
+        const data = (await response.json()) as DashboardResponse;
+        if (!cancelled) {
+          setChartData(data.data);
+          setStats(data.summary);
+        }
+      } catch {
+        console.error('Failed to load stats');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load stats');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    void loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [period]);
 
   if (loading) {
     return (

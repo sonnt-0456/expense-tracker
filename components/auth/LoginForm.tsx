@@ -57,7 +57,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         router.push('/dashboard');
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       setServerError('Network error. Please try again.');
       setLoading(false);
     }

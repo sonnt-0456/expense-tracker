@@ -1,9 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { TransactionInput } from '@/lib/validation/schemas';
+import type { PaginatedResult } from '@/types/api.types';
 import { Transaction, Category } from '@/types/database.types';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
 import { TransactionList } from '@/components/transactions/TransactionList';
+
+async function requestCategories() {
+  const response = await fetch('/api/categories');
+  if (!response.ok) {
+    throw new Error('Failed to load categories');
+  }
+
+  return response.json() as Promise<Category[]>;
+}
+
+async function requestTransactions(page: number) {
+  const response = await fetch(`/api/transactions?page=${page}&pageSize=50`);
+  if (!response.ok) {
+    throw new Error('Failed to load transactions');
+  }
+
+  return response.json() as Promise<PaginatedResult<Transaction>>;
+}
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -17,38 +37,65 @@ export default function TransactionsPage() {
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    fetchCategories();
-    fetchTransactions();
+    let cancelled = false;
+
+    const loadCategories = async () => {
+      try {
+        const data = await requestCategories();
+        if (!cancelled) {
+          setCategories(data);
+        }
+      } catch {
+        if (!cancelled) {
+          console.error('Failed to load categories');
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTransactions = async () => {
+      try {
+        const data = await requestTransactions(page);
+        if (!cancelled) {
+          setTransactions(data.data);
+          setTotalPages(data.totalPages);
+          setError('');
+        }
+      } catch {
+        if (!cancelled) {
+          setError('Failed to load transactions');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadTransactions();
+
+    return () => {
+      cancelled = true;
+    };
   }, [page]);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (error) {
-      console.error('Failed to load categories');
-    }
+  const refreshTransactions = async () => {
+    const data = await requestTransactions(page);
+    setTransactions(data.data);
+    setTotalPages(data.totalPages);
+    setError('');
   };
 
-  const fetchTransactions = async () => {
-    try {
-      const response = await fetch(`/api/transactions?page=${page}&pageSize=50`);
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data.data);
-        setTotalPages(data.totalPages);
-      }
-    } catch (error) {
-      setError('Failed to load transactions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: TransactionInput) => {
     const response = await fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -60,11 +107,11 @@ export default function TransactionsPage() {
       throw new Error(error.error?.message || 'Failed to create transaction');
     }
 
-    await fetchTransactions();
+    await refreshTransactions();
     setShowForm(false);
   };
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (data: TransactionInput) => {
     if (!editingTransaction) return;
 
     const response = await fetch(`/api/transactions/${editingTransaction.id}`, {
@@ -78,7 +125,7 @@ export default function TransactionsPage() {
       throw new Error(error.error?.message || 'Failed to update transaction');
     }
 
-    await fetchTransactions();
+    await refreshTransactions();
     setEditingTransaction(undefined);
   };
 
@@ -94,8 +141,8 @@ export default function TransactionsPage() {
         return;
       }
 
-      await fetchTransactions();
-    } catch (error) {
+      await refreshTransactions();
+    } catch {
       alert('Failed to delete transaction');
     }
   };
@@ -117,7 +164,7 @@ export default function TransactionsPage() {
       } else {
         alert('Failed to export transactions');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to export transactions');
     } finally {
       setExporting(false);
@@ -166,6 +213,7 @@ export default function TransactionsPage() {
               {editingTransaction ? 'Edit Transaction' : 'New Transaction'}
             </h2>
             <TransactionForm
+              key={editingTransaction?.id ?? 'new'}
               transaction={editingTransaction}
               categories={categories}
               onSubmit={editingTransaction ? handleUpdate : handleCreate}

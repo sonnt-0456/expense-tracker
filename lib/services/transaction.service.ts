@@ -2,10 +2,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Database, Transaction, TransactionInsert } from '@/types/database.types';
 import { FilterState, PaginatedResult } from '@/types/api.types';
 
-export class TransactionService {
-  constructor(private supabase: SupabaseClient<Database>) {}
+type TransactionPayload = Pick<
+  TransactionInsert,
+  'category_id' | 'amount' | 'date' | 'type' | 'description'
+>;
 
-  async create(userId: string, data: Omit<TransactionInsert, 'user_id'>): Promise<Transaction> {
+export class TransactionService {
+  constructor(private supabase: SupabaseClient<Database, 'public'>) {}
+
+  async create(userId: string, data: TransactionPayload): Promise<Transaction> {
     const { data: transaction, error } = await this.supabase
       .from('transactions')
       .insert({
@@ -16,8 +21,9 @@ export class TransactionService {
         type: data.type,
         description: data.description || null,
       })
-      .select()
-      .single();
+      .select('*')
+      .single()
+      .overrideTypes<Transaction, { merge: false }>();
 
     if (error) throw error;
     return transaction;
@@ -26,15 +32,16 @@ export class TransactionService {
   async update(
     id: string,
     userId: string,
-    data: Partial<Omit<TransactionInsert, 'user_id'>>
+    data: Partial<TransactionPayload>
   ): Promise<Transaction> {
     const { data: transaction, error } = await this.supabase
       .from('transactions')
       .update(data)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
-      .single();
+      .select('*')
+      .single()
+      .overrideTypes<Transaction, { merge: false }>();
 
     if (error) throw error;
     if (!transaction) throw new Error('Transaction not found or unauthorized');
@@ -54,10 +61,11 @@ export class TransactionService {
   async getById(id: string, userId: string): Promise<Transaction | null> {
     const { data, error } = await this.supabase
       .from('transactions')
-      .select()
+      .select('*')
       .eq('id', id)
       .eq('user_id', userId)
-      .single();
+      .single()
+      .overrideTypes<Transaction, { merge: false }>();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -100,7 +108,8 @@ export class TransactionService {
 
     const { data, error, count } = await query
       .order('date', { ascending: false })
-      .range(from, to);
+      .range(from, to)
+      .overrideTypes<Transaction[], { merge: false }>();
 
     if (error) throw error;
 
@@ -118,7 +127,8 @@ export class TransactionService {
       .from('transactions')
       .select('date, type, amount')
       .eq('user_id', userId)
-      .order('date', { ascending: true });
+      .order('date', { ascending: true })
+      .overrideTypes<Array<Pick<Transaction, 'date' | 'type' | 'amount'>>, { merge: false }>();
 
     if (error) throw error;
 
@@ -163,7 +173,8 @@ export class TransactionService {
     const { data, error } = await this.supabase
       .from('transactions')
       .select('type, amount')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .overrideTypes<Array<Pick<Transaction, 'type' | 'amount'>>, { merge: false }>();
 
     if (error) throw error;
 
@@ -192,7 +203,11 @@ export class TransactionService {
       .from('transactions')
       .select('date, type, category_id, amount, description')
       .eq('user_id', userId)
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .overrideTypes<
+        Array<Pick<Transaction, 'date' | 'type' | 'category_id' | 'amount' | 'description'>>,
+        { merge: false }
+      >();
 
     if (error) throw error;
 
@@ -202,7 +217,8 @@ export class TransactionService {
     const { data: categories } = await this.supabase
       .from('categories')
       .select('id, name')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .overrideTypes<Array<Pick<Database['public']['Tables']['categories']['Row'], 'id' | 'name'>>, { merge: false }>();
 
     const categoryMap = new Map(categories?.map((c) => [c.id, c.name]) || []);
 

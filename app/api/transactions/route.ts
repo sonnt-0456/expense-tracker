@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getErrorCode, jsonError } from '@/lib/http/error-response';
 import { createClient } from '@/lib/supabase/server';
 import { TransactionService } from '@/lib/services/transaction.service';
 import { transactionSchema, filterSchema } from '@/lib/validation/schemas';
@@ -11,17 +12,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const { searchParams } = new URL(request.url);
@@ -32,25 +23,20 @@ export async function GET(request: NextRequest) {
       dateTo: searchParams.get('dateTo') || undefined,
       searchQuery: searchParams.get('searchQuery') || undefined,
     };
+    const validation = filterSchema.safeParse(filters);
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '50');
 
+    if (!validation.success) {
+      return jsonError(400, 'VALIDATION_ERROR', 'Invalid filter data', validation.error.flatten().fieldErrors);
+    }
+
     const transactionService = new TransactionService(supabase);
-    const result = await transactionService.list(user.id, filters, page, pageSize);
+    const result = await transactionService.list(user.id, validation.data, page, pageSize);
 
     return NextResponse.json(result, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+  } catch {
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }
 
@@ -62,66 +48,25 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const body = await request.json();
     const validation = transactionSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid input data',
-            details: validation.error.flatten().fieldErrors,
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(400, 'VALIDATION_ERROR', 'Invalid input data', validation.error.flatten().fieldErrors);
     }
 
     const transactionService = new TransactionService(supabase);
     const transaction = await transactionService.create(user.id, validation.data);
 
     return NextResponse.json(transaction, { status: 201 });
-  } catch (error: any) {
-    if (error.code === '23503') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_CATEGORY',
-            message: 'Category not found',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 404 }
-      );
+  } catch (error: unknown) {
+    if (getErrorCode(error) === '23503') {
+      return jsonError(404, 'INVALID_CATEGORY', 'Category not found');
     }
 
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }

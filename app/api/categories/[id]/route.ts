@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getErrorCode, getErrorMessage, jsonError } from '@/lib/http/error-response';
 import { createClient } from '@/lib/supabase/server';
 import { CategoryService } from '@/lib/services/category.service';
 import { categorySchema } from '@/lib/validation/schemas';
@@ -7,6 +8,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  void request;
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -15,49 +17,19 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const categoryService = new CategoryService(supabase);
     const category = await categoryService.getById(id, user.id);
 
     if (!category) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Category not found',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 404 }
-      );
+      return jsonError(404, 'NOT_FOUND', 'Category not found');
     }
 
     return NextResponse.json(category, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+  } catch {
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }
 
@@ -73,81 +45,30 @@ export async function PUT(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const body = await request.json();
     const validation = categorySchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid input data',
-            details: validation.error.flatten().fieldErrors,
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(400, 'VALIDATION_ERROR', 'Invalid input data', validation.error.flatten().fieldErrors);
     }
 
     const categoryService = new CategoryService(supabase);
     const category = await categoryService.update(id, user.id, validation.data.name);
 
     return NextResponse.json(category, { status: 200 });
-  } catch (error: any) {
-    if (error.message?.includes('not found or unauthorized')) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Category not found',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 404 }
-      );
+  } catch (error: unknown) {
+    if (getErrorMessage(error)?.includes('not found or unauthorized')) {
+      return jsonError(404, 'NOT_FOUND', 'Category not found');
     }
 
-    if (error.code === '23505') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'DUPLICATE_NAME',
-            message: 'Category name already exists',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 409 }
-      );
+    if (getErrorCode(error) === '23505') {
+      return jsonError(409, 'DUPLICATE_NAME', 'Category name already exists');
     }
 
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }
 
@@ -155,6 +76,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  void request;
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -163,48 +85,18 @@ export async function DELETE(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+      return jsonError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const categoryService = new CategoryService(supabase);
     await categoryService.delete(id, user.id);
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
-    if (error.message?.includes('associated transactions')) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'CATEGORY_IN_USE',
-            message: 'Cannot delete category with associated transactions',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 409 }
-      );
+  } catch (error: unknown) {
+    if (getErrorMessage(error)?.includes('associated transactions')) {
+      return jsonError(409, 'CATEGORY_IN_USE', 'Cannot delete category with associated transactions');
     }
 
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }

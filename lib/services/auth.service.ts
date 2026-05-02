@@ -3,7 +3,7 @@ import { Database } from '@/types/database.types';
 import { User } from '@/types/database.types';
 
 export class AuthService {
-  constructor(private supabase: SupabaseClient<Database>) {}
+  constructor(private supabase: SupabaseClient<Database, 'public'>) {}
 
   async register(email: string, password: string) {
     const { data, error } = await this.supabase.auth.signUp({

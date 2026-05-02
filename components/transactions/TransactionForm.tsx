@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import type { TransactionInput } from '@/lib/validation/schemas';
 import { Transaction, Category } from '@/types/database.types';
 import { transactionSchema } from '@/lib/validation/schemas';
 
 interface TransactionFormProps {
   transaction?: Transaction;
   categories: Category[];
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: TransactionInput) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -19,16 +20,6 @@ export function TransactionForm({ transaction, categories, onSubmit, onCancel }:
   const [description, setDescription] = useState(transaction?.description || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (transaction) {
-      setAmount(transaction.amount.toString());
-      setDate(transaction.date);
-      setCategoryId(transaction.category_id);
-      setType(transaction.type);
-      setDescription(transaction.description || '');
-    }
-  }, [transaction]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +55,7 @@ export function TransactionForm({ transaction, categories, onSubmit, onCancel }:
         setType('expense');
         setDescription('');
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Failed to save transaction' });
     } finally {
       setLoading(false);

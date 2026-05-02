@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Category } from '@/types/database.types';
 import { categorySchema } from '@/lib/validation/schemas';
 
@@ -14,12 +14,6 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
   const [name, setName] = useState(category?.name || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (category) {
-      setName(category.name);
-    }
-  }, [category]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +36,7 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
     try {
       await onSubmit({ name: validation.data.name });
       setName('');
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Failed to save category' });
     } finally {
       setLoading(false);

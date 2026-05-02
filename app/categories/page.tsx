@@ -1,9 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Category } from '@/types/database.types';
 import { CategoryForm } from '@/components/categories/CategoryForm';
 import { CategoryList } from '@/components/categories/CategoryList';
+
+async function requestCategories() {
+  const response = await fetch('/api/categories');
+  if (!response.ok) {
+    throw new Error('Failed to load categories');
+  }
+
+  return response.json() as Promise<Category[]>;
+}
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,21 +22,37 @@ export default function CategoriesPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchCategories();
+    let cancelled = false;
+
+    const loadCategories = async () => {
+      try {
+        const data = await requestCategories();
+        if (!cancelled) {
+          setCategories(data);
+          setError('');
+        }
+      } catch {
+        if (!cancelled) {
+          setError('Failed to load categories');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (error) {
-      setError('Failed to load categories');
-    } finally {
-      setLoading(false);
-    }
+  const refreshCategories = async () => {
+    const data = await requestCategories();
+    setCategories(data);
+    setError('');
   };
 
   const handleCreate = async (data: { name: string }) => {
@@ -42,7 +67,7 @@ export default function CategoriesPage() {
       throw new Error(error.error?.message || 'Failed to create category');
     }
 
-    await fetchCategories();
+    await refreshCategories();
     setShowForm(false);
   };
 
@@ -60,7 +85,7 @@ export default function CategoriesPage() {
       throw new Error(error.error?.message || 'Failed to update category');
     }
 
-    await fetchCategories();
+    await refreshCategories();
     setEditingCategory(undefined);
   };
 
@@ -76,8 +101,8 @@ export default function CategoriesPage() {
         return;
       }
 
-      await fetchCategories();
-    } catch (error) {
+      await refreshCategories();
+    } catch {
       alert('Failed to delete category');
     }
   };
@@ -115,6 +140,7 @@ export default function CategoriesPage() {
               {editingCategory ? 'Edit Category' : 'New Category'}
             </h2>
             <CategoryForm
+              key={editingCategory?.id ?? 'new'}
               category={editingCategory}
               onSubmit={editingCategory ? handleUpdate : handleCreate}
               onCancel={() => {

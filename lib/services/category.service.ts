@@ -3,14 +3,15 @@ import { Database } from '@/types/database.types';
 import { Category } from '@/types/database.types';
 
 export class CategoryService {
-  constructor(private supabase: SupabaseClient<Database>) {}
+  constructor(private supabase: SupabaseClient<Database, 'public'>) {}
 
   async create(userId: string, name: string): Promise<Category> {
     const { data, error } = await this.supabase
       .from('categories')
       .insert({ user_id: userId, name: name.trim() })
-      .select()
-      .single();
+      .select('*')
+      .single()
+      .overrideTypes<Category, { merge: false }>();
 
     if (error) throw error;
     return data;
@@ -22,8 +23,9 @@ export class CategoryService {
       .update({ name: name.trim() })
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
-      .single();
+      .select('*')
+      .single()
+      .overrideTypes<Category, { merge: false }>();
 
     if (error) throw error;
     if (!data) throw new Error('Category not found or unauthorized');
@@ -49,10 +51,11 @@ export class CategoryService {
   async getById(id: string, userId: string): Promise<Category | null> {
     const { data, error } = await this.supabase
       .from('categories')
-      .select()
+      .select('*')
       .eq('id', id)
       .eq('user_id', userId)
-      .single();
+      .single()
+      .overrideTypes<Category, { merge: false }>();
 
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
@@ -64,9 +67,10 @@ export class CategoryService {
   async list(userId: string): Promise<Category[]> {
     const { data, error } = await this.supabase
       .from('categories')
-      .select()
+      .select('*')
       .eq('user_id', userId)
-      .order('name');
+      .order('name')
+      .overrideTypes<Category[], { merge: false }>();
 
     if (error) throw error;
     return data || [];

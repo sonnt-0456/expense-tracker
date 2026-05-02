@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { AuthService } from '@/lib/services/auth.service';
+import { getErrorMessage, jsonError } from '@/lib/http/error-response';
 import { loginSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
@@ -10,18 +11,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validation = loginSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid input data',
-            details: validation.error.flatten().fieldErrors,
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 400 }
-      );
+      return jsonError(400, 'VALIDATION_ERROR', 'Invalid input data', validation.error.flatten().fieldErrors);
     }
 
     const { email, password } = validation.data;
@@ -41,32 +31,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check for invalid credentials
-    if (error.message?.includes('Invalid login credentials')) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_CREDENTIALS',
-            message: 'Invalid email or password',
-            timestamp: new Date().toISOString(),
-            requestId: crypto.randomUUID(),
-          },
-        },
-        { status: 401 }
-      );
+    if (getErrorMessage(error)?.includes('Invalid login credentials')) {
+      return jsonError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
     }
 
-    return NextResponse.json(
-      {
-        error: {
-          code: 'SERVER_ERROR',
-          message: 'An unexpected error occurred',
-          timestamp: new Date().toISOString(),
-          requestId: crypto.randomUUID(),
-        },
-      },
-      { status: 500 }
-    );
+    return jsonError(500, 'SERVER_ERROR', 'An unexpected error occurred');
   }
 }
