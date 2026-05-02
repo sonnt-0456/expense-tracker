@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Expense Tracker
+
+A personal finance management application built with Next.js, TypeScript, and Supabase.
+
+## Features
+
+- User authentication (register/login)
+- Transaction management (income/expense tracking)
+- Category management
+- Dashboard with line chart visualization
+- Filter and search transactions
+- Export to CSV
+- Responsive design
+
+## Tech Stack
+
+- **Frontend & Backend**: Next.js 14+ (App Router)
+- **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS
+- **Charts**: Recharts
+- **Testing**: Vitest + fast-check
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+- Supabase account
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a Supabase project at [supabase.com](https://supabase.com)
+
+4. Run the database migrations in your Supabase SQL editor:
+   - Execute `supabase/migrations/20240101000000_initial_schema.sql`
+   - Execute `supabase/migrations/20240101000001_rls_policies.sql`
+
+5. Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+6. Update `.env.local` with your Supabase URL and keys:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+### Development
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run tests:
 
-## Learn More
+```bash
+npm run test
+```
 
-To learn more about Next.js, take a look at the following resources:
+Run tests with UI:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run test:ui
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Building for Production
 
-## Deploy on Vercel
+```bash
+npm run build
+npm start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+expense-tracker/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── login/             # Login page
+│   ├── register/          # Register page
+│   └── dashboard/         # Dashboard (protected)
+├── components/            # React components
+│   ├── auth/             # Authentication components
+│   ├── transactions/     # Transaction components
+│   ├── categories/       # Category components
+│   └── dashboard/        # Dashboard components
+├── lib/                   # Utilities and services
+│   ├── services/         # Business logic
+│   ├── supabase/         # Supabase clients
+│   └── validation/       # Zod schemas
+├── types/                 # TypeScript types
+└── supabase/             # Database migrations
+```
+
+## Database Schema
+
+- **categories**: User-defined transaction categories
+- **transactions**: Income and expense records
+
+Both tables have Row-Level Security (RLS) enabled for data isolation.
+
+## License
+
+MIT
