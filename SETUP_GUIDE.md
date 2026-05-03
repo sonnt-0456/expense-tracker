@@ -1,217 +1,92 @@
-# Expense Tracker - Setup Guide
+# Setup Guide
 
-## ✅ Đã hoàn thành
+This guide covers the exact setup required to run and deploy the current codebase.
 
-### Core Features
-- ✅ Authentication (Register/Login/Logout)
-- ✅ Category Management (CRUD)
-- ✅ Transaction Management (CRUD)
-- ✅ Dashboard với line charts (daily/weekly/monthly)
-- ✅ CSV Export
-- ✅ Pagination (50 records/page)
-- ✅ Responsive design
-- ✅ Row-Level Security (RLS)
+## 1. Prerequisites
 
-### Tech Stack
-- Next.js 14+ (App Router)
-- TypeScript
-- Supabase (PostgreSQL + Auth)
-- Tailwind CSS
-- Recharts
-- Vitest + fast-check
+- Node.js 18 or newer
+- npm
+- A Supabase project
+- A Vercel account if you want to deploy
 
-## 🚀 Setup Instructions
+## 2. Supabase Setup
 
-### 1. Supabase Setup
+Create a Supabase project, then run these SQL migrations in the SQL editor:
 
-1. Tạo project tại [supabase.com](https://supabase.com)
+- `supabase/migrations/20240101000000_initial_schema.sql`
+- `supabase/migrations/20240101000001_rls_policies.sql`
 
-2. Chạy migrations trong SQL Editor:
+These migrations create the `categories` and `transactions` tables and enable Row-Level Security.
 
-**Migration 1: Initial Schema**
-```sql
--- Copy nội dung từ supabase/migrations/20240101000000_initial_schema.sql
-```
+## 3. Environment Variables
 
-**Migration 2: RLS Policies**
-```sql
--- Copy nội dung từ supabase/migrations/20240101000001_rls_policies.sql
-```
-
-3. Lấy credentials:
-   - Project URL: Settings → API → Project URL
-   - Anon key: Settings → API → anon/public key
-   - Service role key: Settings → API → service_role key
-
-### 2. Environment Variables
-
-Tạo file `.env.local`:
+Create `.env.local` in the project root:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-### 3. Install & Run
+Only these two variables are required by the current app.
+
+## 4. Install And Run
 
 ```bash
-cd expense-tracker
 npm install
 npm run dev
 ```
 
-Mở http://localhost:3000
+Then open `http://localhost:3000`.
 
-## 📋 Testing Flow
+## 5. Build Verification
 
-### 1. Authentication
-- Truy cập http://localhost:3000
-- Click "Get Started" → Register
-- Email: test@example.com
-- Password: password123 (min 8 chars)
-- Sau khi register, tự động redirect đến /dashboard
+Use the production build locally before deploying:
 
-### 2. Categories
-- Từ dashboard, click "Categories"
-- Tạo categories: Food, Transport, Entertainment, Salary
-- Test edit/delete
-
-### 3. Transactions
-- Click "Transactions"
-- Tạo transaction:
-  - Amount: 1000
-  - Date: hôm nay
-  - Category: Salary
-  - Type: Income
-  - Description: Monthly salary
-- Tạo thêm expenses
-- Test edit/delete
-- Test pagination (nếu > 50 records)
-
-### 4. Dashboard
-- Quay lại Dashboard
-- Xem stats: Total Income, Total Expense, Balance, Transaction Count
-- Xem line chart
-- Test period filters: Daily, Weekly, Monthly
-
-### 5. CSV Export
-- Vào Transactions page
-- Click "Export CSV"
-- File sẽ download với format: transactions-YYYY-MM-DD.csv
-
-## 🔧 MCP Server (Context7)
-
-Đã setup trong `~/.kiro/settings/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "uvx",
-      "args": ["context7"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": false,
-      "autoApprove": []
-    }
-  }
-}
-```
-
-**Cài đặt uv (nếu chưa có):**
 ```bash
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# hoặc với pip
-pip install uv
+npm run build
 ```
 
-## 📝 Còn thiếu (Optional)
+If the build passes locally, the app is generally ready for Vercel.
 
-### Tasks chưa làm:
-- Task 13: Filtering & search UI (API đã có, chỉ thiếu UI component)
-- Task 16: Navigation component
-- Task 18: Error handling improvements
-- Task 19: Responsive design refinements
-- Task 20-22: Deployment configuration
+## 6. Vercel Deployment
 
-### Để hoàn thiện:
+Add the same environment variables in Vercel:
 
-**1. Add Filtering UI (Task 13):**
-Tạo `components/transactions/TransactionFilters.tsx` với:
-- Category dropdown filter
-- Type filter (income/expense)
-- Date range pickers
-- Search input
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-**2. Add Navigation (Task 16):**
-Tạo `components/common/Navigation.tsx` với:
-- Logo
-- Links: Dashboard, Transactions, Categories
-- User email display
-- Logout button
+Then redeploy the project.
 
-**3. Deploy to Cloudflare Workers:**
-```bash
-npm install -g wrangler
-wrangler login
-wrangler deploy
-```
+The app does not need `SUPABASE_SERVICE_ROLE_KEY` for the current frontend/server routes.
 
-## 🎯 Manual Testing Checklist
+## 7. Auth Flow
 
-- [ ] Register new user
-- [ ] Login with existing user
-- [ ] Logout
-- [ ] Create category
-- [ ] Edit category
-- [ ] Delete category (without transactions)
-- [ ] Try delete category with transactions (should fail)
-- [ ] Create income transaction
-- [ ] Create expense transaction
-- [ ] Edit transaction
-- [ ] Delete transaction
-- [ ] View dashboard stats
-- [ ] Switch chart periods (daily/weekly/monthly)
-- [ ] Export CSV
-- [ ] Test pagination (create 51+ transactions)
-- [ ] Test on mobile viewport
-- [ ] Test authentication redirect (access /dashboard without login)
+- Public routes: `/`, `/login`, `/register`
+- Protected routes: `/dashboard`, `/transactions`, `/categories`
+- Auth state is handled by Supabase SSR, `proxy.ts`, and server-side protected layouts
+- Logout clears the session and returns the user to `/`
 
-## 🐛 Common Issues
+## 8. What Is Implemented
 
-**1. Supabase connection error:**
-- Check `.env.local` có đúng credentials
-- Restart dev server sau khi update env
+- Login, register, logout
+- Category CRUD
+- Transaction CRUD
+- Dashboard stats and chart
+- CSV export
+- Responsive navigation and header
+- Protected routes
 
-**2. RLS policy errors:**
-- Verify migrations đã chạy đúng
-- Check user đã authenticated
+## 9. What Is Not Implemented Yet
 
-**3. Chart không hiển thị:**
-- Cần có ít nhất 1 transaction
-- Check console for errors
+- Transaction filter UI
+- Property-based tests
+- Some advanced error-handling and refinement tasks from `.kiro/specs`
 
-## 📚 Documentation
+## 10. Quick Checklist
 
-- Requirements: `.kiro/specs/expense-tracker/requirements.md`
-- Design: `.kiro/specs/expense-tracker/design.md`
-- Tasks: `.kiro/specs/expense-tracker/tasks.md`
-- README: `README.md`
+- Supabase migrations applied
+- `.env.local` created
+- `npm run dev` works locally
+- `npm run build` passes
+- Vercel env vars configured
 
-## 🎉 Next Steps
-
-1. Setup Supabase và chạy migrations
-2. Update `.env.local`
-3. Run `npm run dev`
-4. Test authentication flow
-5. Create categories và transactions
-6. View dashboard
-7. Export CSV
-8. (Optional) Add filtering UI
-9. (Optional) Deploy to Cloudflare/Vercel
-
-Chúc bạn thành công! 🚀

@@ -1,121 +1,148 @@
 # Expense Tracker
 
-A personal finance management application built with Next.js, TypeScript, and Supabase.
+Expense Tracker is a personal finance app built with Next.js 16, TypeScript, Tailwind CSS, Supabase, and Recharts. It supports authentication, category and transaction management, dashboard analytics, CSV export, and protected routes.
 
-## Features
+## Preview
 
-- User authentication (register/login)
-- Transaction management (income/expense tracking)
-- Category management
-- Dashboard with line chart visualization
-- Filter and search transactions
-- Export to CSV
-- Responsive design
+![Expense Tracker screenshot](./public/preview.png)
+
+## What It Does
+
+- Register, sign in, and sign out with Supabase Auth
+- Manage income and expense transactions
+- Manage categories
+- View a dashboard with income, expense, balance, and transaction trends
+- Export transactions to CSV
+- Protect authenticated routes with server-side checks and proxy redirects
 
 ## Tech Stack
 
-- **Frontend & Backend**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Styling**: Tailwind CSS
-- **Charts**: Recharts
-- **Testing**: Vitest + fast-check
+- Next.js 16.2.4 with App Router
+- React 19
+- TypeScript
+- Supabase SSR and Auth
+- Tailwind CSS 4
+- Recharts
+- Zod
+- Vitest and fast-check
 
-## Getting Started
+## Project Structure
 
-### Prerequisites
+- `app/` app router pages, layouts, and API routes
+- `components/` reusable UI components
+- `lib/` Supabase clients, services, validation, and error helpers
+- `types/` app and database types
+- `supabase/migrations/` SQL migrations for schema and RLS
 
-- Node.js 18+ 
-- npm or yarn
-- Supabase account
+## Main Routes
 
-### Setup
+- `/` landing page
+- `/login` sign-in page
+- `/register` sign-up page
+- `/dashboard` analytics dashboard
+- `/transactions` transaction list and CRUD
+- `/categories` category management
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## API Routes
 
-3. Create a Supabase project at [supabase.com](https://supabase.com)
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `POST /api/auth/logout`
+- `GET /api/categories`
+- `POST /api/categories`
+- `GET /api/categories/[id]`
+- `PUT /api/categories/[id]`
+- `DELETE /api/categories/[id]`
+- `GET /api/transactions`
+- `POST /api/transactions`
+- `GET /api/transactions/[id]`
+- `PUT /api/transactions/[id]`
+- `DELETE /api/transactions/[id]`
+- `GET /api/transactions/stats`
+- `GET /api/transactions/export`
 
-4. Run the database migrations in your Supabase SQL editor:
-   - Execute `supabase/migrations/20240101000000_initial_schema.sql`
-   - Execute `supabase/migrations/20240101000001_rls_policies.sql`
+## Authentication Flow
 
-5. Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials:
-   ```bash
-   cp .env.local.example .env.local
-   ```
+- Session state is handled by Supabase SSR.
+- `proxy.ts` blocks protected routes for anonymous users and redirects them to `/login`.
+- `components/layout/ProtectedLayout.tsx` performs server-side auth checks for protected pages.
+- `components/layout/SiteHeader.tsx` reads the current session and shows the correct user state.
+- The home page shows different CTAs depending on whether the user is signed in.
 
-6. Update `.env.local` with your Supabase URL and keys:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
+## Database
 
-### Development
+The app uses two tables:
 
-Run the development server:
+- `categories`
+- `transactions`
+
+Both tables use Row-Level Security to isolate user data. Migrations live in:
+
+- `supabase/migrations/20240101000000_initial_schema.sql`
+- `supabase/migrations/20240101000001_rls_policies.sql`
+
+## Environment Variables
+
+Create a `.env.local` file with:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is not used by the current codebase, so you do not need it for local development or Vercel deployment.
+
+## Local Setup
+
+1. Install dependencies.
+
+```bash
+npm install
+```
+
+2. Run the Supabase migrations in the SQL editor.
+
+3. Add the environment variables above to `.env.local`.
+
+4. Start the app.
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open `http://localhost:3000`.
 
-### Testing
+## Available Scripts
 
-Run tests:
+- `npm run dev` start the development server
+- `npm run build` build for production
+- `npm run start` run the production server
+- `npm run lint` run ESLint
+- `npm run test` run Vitest
+- `npm run test:run` run Vitest in CI mode
+- `npm run test:ui` open the Vitest UI
 
-```bash
-npm run test
-```
+## Deployment
 
-Run tests with UI:
+The app is ready to deploy on Vercel.
 
-```bash
-npm run test:ui
-```
+Before deploying:
 
-### Building for Production
+1. Set the production environment variables in Vercel.
+2. Make sure the production branch is correct.
+3. Redeploy after changing env vars.
 
-```bash
-npm run build
-npm start
-```
+The build has been verified locally with `npm run build`.
 
-## Project Structure
+## Notes
 
-```
-expense-tracker/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── login/             # Login page
-│   ├── register/          # Register page
-│   └── dashboard/         # Dashboard (protected)
-├── components/            # React components
-│   ├── auth/             # Authentication components
-│   ├── transactions/     # Transaction components
-│   ├── categories/       # Category components
-│   └── dashboard/        # Dashboard components
-├── lib/                   # Utilities and services
-│   ├── services/         # Business logic
-│   ├── supabase/         # Supabase clients
-│   └── validation/       # Zod schemas
-├── types/                 # TypeScript types
-└── supabase/             # Database migrations
-```
+- The app currently has no implemented filtering UI for transactions, even though the backend is prepared for filtered reads.
+- The navigation and protected-route flow are implemented globally, so users can move between pages without using browser back.
+- Next.js is configured with `turbopack.root` to avoid workspace root confusion during build.
 
-## Database Schema
+## Documentation
 
-- **categories**: User-defined transaction categories
-- **transactions**: Income and expense records
-
-Both tables have Row-Level Security (RLS) enabled for data isolation.
-
-## License
-
-MIT
+- Setup guide: `SETUP_GUIDE.md`
+- Requirements: `.kiro/specs/expense-tracker/requirements.md`
+- Design: `.kiro/specs/expense-tracker/design.md`
+- Tasks: `.kiro/specs/expense-tracker/tasks.md`
